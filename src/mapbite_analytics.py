@@ -79,8 +79,20 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, cuisine_preference)
     df['total_reviews'] = df['total_reviews'].fillna(0)
     
     # NEW ALIGNED FORMULA: Exponentially rewards poor ratings in high-traffic zones
+    # Ensure price_level is numeric, default missing to a baseline of 2 (mid-range)
+    df['price_level'] = pd.to_numeric(df['price_level'], errors='coerce').fillna(2)
+
+    # 1. Base Opportunity Score (Quality Gap - Your original)
     df['Opportunity_Score'] = np.log1p(df['total_reviews']) * ((5.0 - df['rating']) ** 2)
     df['Opportunity_Score'] = df['Opportunity_Score'].round(1)
+
+    # 2. Premium Gap Score (Value Deficit - Your original)
+    df['Premium_Gap_Score'] = df['Opportunity_Score'] * (df['price_level'] / 2.0)
+    df['Premium_Gap_Score'] = df['Premium_Gap_Score'].round(1)
+
+    # ADD THIS 3. Market Dominance Score (The Absolute Best Competitors)
+    df['Market_Dominance_Score'] = np.log1p(df['total_reviews']) * df['rating']
+    df['Market_Dominance_Score'] = df['Market_Dominance_Score'].round(1)
     
     # Re-sort hierarchy based on new alignment
     df = df.sort_values(by='Opportunity_Score', ascending=False).reset_index(drop=True)

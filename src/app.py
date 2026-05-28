@@ -25,7 +25,7 @@ except KeyError:
 # ==========================================
 # BUDGET TRACKING & RATE LIMITER ENGINE
 # ==========================================
-DAILY_RUN_LIMIT = 5  
+DAILY_RUN_LIMIT = st.secrets["MAX_BUDGET"]  
 USAGE_FILE = "api_usage_tracker.txt"
 
 def check_daily_allowance():

@@ -1,5 +1,7 @@
-.streamlit/secrets.toml
-api_usage_tracker.txt
-__pycache__/
+src/.streamlit/secrets.toml
+src/api_usage_tracker.txt
+src/__pycache__/
 temp/
 .venv/
+src/ignore_app.py
+Lab.ipynb

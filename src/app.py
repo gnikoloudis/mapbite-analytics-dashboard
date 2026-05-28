@@ -1,258 +1,238 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-import googlemaps
 import folium
-from folium.plugins import HeatMap
 from streamlit_folium import st_folium
-from time import sleep
-import datetime
-import os
+from folium.plugins import HeatMap
 
-# Page setup
-st.set_page_config(layout="wide", page_title="MapBite Analytics Dashboard")
-st.title("📍 MapBite Analytics Dashboard")
+# Import our custom logic modules securely using the unique namespace string
+import tracker
+import mapbite_analytics as analytics
 
 # ==========================================
-# SECURE CREDENTIAL RECOVERY
+# 1. UI INITIALIZATION & PLATFORM TOKENS
 # ==========================================
-try:
-    API_KEY = st.secrets["GOOGLE_API_KEY"]
-except KeyError:
-    st.error("Missing Security Configuration! Please set 'GOOGLE_API_KEY' inside your Streamlit Secrets panel.")
-    st.stop()
-
-# ==========================================
-# BUDGET TRACKING & RATE LIMITER ENGINE
-# ==========================================
-DAILY_RUN_LIMIT = 5  
-USAGE_FILE = "api_usage_tracker.txt"
-
-def check_daily_allowance():
-    today = str(datetime.date.today())
-    if not os.path.exists(USAGE_FILE):
-        with open(USAGE_FILE, "w") as f:
-            f.write(f"{today},0")
-        return True, DAILY_RUN_LIMIT
-    with open(USAGE_FILE, "r") as f:
-        data = f.read().strip().split(",")
-    record_date = data[0]
-    current_count = int(data[1])
-    if record_date != today:
-        with open(USAGE_FILE, "w") as f:
-            f.write(f"{today},0")
-        return True, DAILY_RUN_LIMIT
-    remaining = DAILY_RUN_LIMIT - current_count
-    if current_count >= DAILY_RUN_LIMIT:
-        return False, 0
-    return True, remaining
-
-def increment_daily_usage():
-    today = str(datetime.date.today())
-    with open(USAGE_FILE, "r") as f:
-        data = f.read().strip().split(",")
-    new_count = int(data[1]) + 1
-    with open(USAGE_FILE, "w") as f:
-        f.write(f"{today},{new_count}")
-
-allowed_to_run, runs_left = check_daily_allowance()
-
-# ==========================================
-# SIDEBAR CONTROL PANEL (WITH RADIUS FORM)
-# ==========================================
-st.sidebar.header("Target Location Parameters")
-lat_input = st.sidebar.number_input("Latitude", value=37.9825405, format="%.7f")
-lng_input = st.sidebar.number_input("Longitude", value=23.7373905, format="%.7f")
-target_coords = (lat_input, lng_input)
-
-keyword = st.sidebar.text_input("Cuisine/Keyword", value="pizza")
-business_type = "restaurant"
-
-# --- NEW: Dynamic Search Strategy Form Fields ---
-st.sidebar.markdown("---")
-st.sidebar.subheader("Search Strategy")
-search_mode = st.sidebar.radio(
-    "Select Scope Strategy:",
-    options=["Distance Rank (Strict Closest)", "Fixed Radius Bound"]
+st.set_page_config(
+    page_title="MapBite - Competitor Intelligence Dashboard",
+    page_icon="🍔",
+    layout="wide"
 )
 
-# Render a slider ONLY if the user wants a fixed radius boundary
-radius_meters = None
-if search_mode == "Fixed Radius Bound":
-    radius_meters = st.sidebar.slider(
-        "Search Radius (Meters)", 
-        min_value=500, 
-        max_value=5000, 
-        value=2500, 
-        step=250,
-        help="500m is walkable; 2500m is roughly a 5-10 minute drive layout."
-    )
+st.title("🍔 MapBite Market Intelligence Dashboard")
+st.markdown("Benchmark your location, map competitor density, and evaluate neighborhood market power.")
 
-st.sidebar.markdown("---")
-st.sidebar.markdown(f"📊 **Remaining Budget Today:** `{runs_left} / {DAILY_RUN_LIMIT} queries left`")
-
-if allowed_to_run:
-    run_analysis = st.sidebar.button("Run Market Analysis", type="primary")
+# Handle API Key validation
+if "GOOGLE_API_KEY" in st.secrets:
+    API_KEY = st.secrets["GOOGLE_API_KEY"]
+    map_client = analytics.get_map_client(API_KEY)
 else:
-    st.sidebar.error("⛔ Daily market analysis budget exhausted! Resets at midnight.")
-    run_analysis = False
+    st.error("🔑 Google API Key missing! Please configure GOOGLE_API_KEY inside your Streamlit secrets.")
+    st.stop()
 
-if "final_df" not in st.session_state:
-    st.session_state.final_df = None
+# DYNAMIC CONFIG: Fetch Daily Cap Limit directly from Streamlit Secrets
+DAILY_MAX_LIMIT = st.secrets.get("DAILY_MAX_LIMIT", 5)
+
+# Initialize dynamic session states to preserve execution data over refreshes
+if "analysis_df" not in st.session_state:
+    st.session_state.analysis_df = None
+if "last_lat" not in st.session_state:
+    st.session_state.last_lat = 37.9825405
+if "last_lng" not in st.session_state:
+    st.session_state.last_lng = 23.7373905
+
+# Pre-fetch usage status for blocking buttons if needed
+is_under_limit, current_usage = tracker.check_and_increment_tracker(DAILY_MAX_LIMIT)
 
 # ==========================================
-# DATA INGESTION ENGINE (COMPATIBILITY CONTROLLER)
+# 2. GEOGRAPHIC SIDEBAR SELECTIONS ENGINE
 # ==========================================
-if run_analysis:
-    with st.spinner("Fetching nearby market competitors from Google Maps..."):
-        try:
-            map_client = googlemaps.Client(key=API_KEY)
-            results = []
-            next_page = None
-            
-            for _ in range(3):
-                if next_page:
-                    response = map_client.places_nearby(page_token=next_page)
+st.sidebar.header("📍 Target Setup")
+
+# Cuisine Preference Field Input
+cuisine_input = st.sidebar.text_input(
+    "Preferred Cuisine Type:",
+    placeholder="e.g., Italian, Sushi, Souvlaki, Burgers",
+    value=""
+)
+
+input_mode = st.sidebar.radio(
+    "Location Selection Mode:",
+    ["🔍 Type an Address / Landmark", "⌨️ Input Coordinates Directly"]
+)
+
+address_resolved = True
+
+if input_mode == "🔍 Type an Address / Landmark":
+    address_string = st.sidebar.text_input("Enter Target Location Address:", placeholder="e.g., Syntagma Square, Athens")
+    
+    if address_string:
+        lat, lng = analytics.resolve_address(map_client, address_string)
+        if lat and lng:
+            st.session_state.last_lat, st.session_state.last_lng = lat, lng
+            st.sidebar.success(f"🎯 Target Locked: `{lat:.5f}, {lng:.5f}`")
+        else:
+            st.sidebar.error("❌ Could not resolve address. Try verifying the spelling or network connection!")
+            address_resolved = False
+    else:
+        st.sidebar.info("💡 Type an address above to map out a restaurant market zone.")
+        address_resolved = False
+else:
+    with st.sidebar.expander("Precision GPS Coordinates", expanded=True):
+        st.session_state.last_lat = st.number_input("Latitude", value=st.session_state.last_lat, format="%.7f")
+        st.session_state.last_lng = st.number_input("Longitude", value=st.session_state.last_lng, format="%.7f")
+
+search_radius = st.sidebar.slider("Search Scan Radius (Meters)", min_value=200, max_value=3000, value=1000, step=100)
+
+# Execution trigger hooks
+if address_resolved:
+    if not is_under_limit:
+        st.sidebar.error("🚨 System Daily Query Limit Reached! Try again tomorrow.")
+        st.sidebar.button("🚀 Run Competitive Analysis", disabled=True, width="stretch")
+    else:
+        if st.sidebar.button("🚀 Run Competitive Analysis", width="stretch"):
+            with st.spinner("Analyzing neighborhood market dynamics..."):
+                df_results = analytics.fetch_and_rank_competitors(
+                    map_client, st.session_state.last_lat, st.session_state.last_lng, search_radius, cuisine_input
+                )
+                if not df_results.empty:
+                    tracker.increment_counter_file(current_usage)
+                    st.session_state.analysis_df = df_results
+                    st.rerun()
                 else:
-                    # --- NEW: Conditional Payload Processing ---
-                    if search_mode == "Fixed Radius Bound":
-                        # Radius searches require a defined radius and CANNOT use rank_by
-                        response = map_client.places_nearby(
-                            location=target_coords,
-                            type=business_type,
-                            radius=radius_meters,
-                            keyword=keyword
-                        )
-                    else:
-                        # Distance rankings CANNOT use a radius parameter
-                        response = map_client.places_nearby(
-                            location=target_coords, 
-                            type=business_type, 
-                            rank_by='distance', 
-                            keyword=keyword
-                        )
-                        
-                results.extend(response.get('results', []))
-                next_page = response.get('next_page_token')
-                if not next_page:
-                    break
-                sleep(2)
-            
-            df_nearby = pd.DataFrame(results)
-            
-            if df_nearby.empty:
-                st.warning("No competitors found matching your location parameters.")
-            else:
-                place_ids, names, lats, lngs, ratings, total_reviews, price_levels, websites = [], [], [], [], [], [], [], []
-                
-                for p_id in df_nearby['place_id'].tolist()[:60]:
-                    place = map_client.place(
-                        place_id=p_id,
-                        fields=['name', 'geometry', 'rating', 'user_ratings_total', 'price_level', 'website']
-                    )
-                    res = place.get('result', {})
-                    
-                    place_ids.append(p_id)
-                    names.append(res.get('name', 'Unknown'))
-                    ratings.append(res.get('rating', np.nan))
-                    total_reviews.append(res.get('user_ratings_total', 0))
-                    price_levels.append(res.get('price_level', 1))
-                    websites.append(res.get('website', '#'))
-                    
-                    loc = res.get('geometry', {}).get('location', {})
-                    lats.append(loc.get('lat', np.nan))
-                    lngs.append(loc.get('lng', np.nan))
-                
-                st.session_state.final_df = pd.DataFrame({
-                    'name': names, 'lat': lats, 'lng': lngs, 'rating': ratings,
-                    'total_reviews': total_reviews, 'price_level': price_levels, 'website': websites
-                }).dropna(subset=['lat', 'lng'])
-                
-                increment_daily_usage()
-                st.rerun()  
-                
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+                    st.warning("📭 No active listings for this cuisine type found within this search area.")
+
+# Quota tracking progress component
+st.sidebar.markdown("---")
+st.sidebar.markdown(f"### 📊 App Resource Monitor")
+st.sidebar.progress(
+    min(current_usage / DAILY_MAX_LIMIT, 1.0), 
+    text=f"Daily Limit Usage: {current_usage} / {DAILY_MAX_LIMIT}"
+)
 
 # ==========================================
-# PRESENTATION INTERFACE LAYER
+# 3. RESULTS VIEW DASHBOARD GENERATION
 # ==========================================
-if st.session_state.final_df is not None:
-    df = st.session_state.final_df.copy()
+df = st.session_state.analysis_df
+
+if df is not None and not df.empty:
+    top_opportunity = df.iloc[0]
     
-    st.markdown("### 🔍 Filter Intelligence Data")
-    col_f1, col_f2, col_f3 = st.columns(3)
-    
-    with col_f1:
-        min_rating = st.slider("Minimum Star Rating", 1.0, 5.0, 1.0, step=0.1)
-    with col_f2:
-        min_reviews = st.number_input("Minimum Review Volume", min_value=0, value=0, step=10)
-    with col_f3:
-        price_filter = st.multiselect("Price Tiers (€)", options=[1, 2, 3, 4], default=[1, 2, 3, 4], format_func=lambda x: "€" * x)
-        
-    filtered_df = df[
-        (df['rating'] >= min_rating) & 
-        (df['total_reviews'] >= min_reviews) & 
-        (df['price_level'].isin(price_filter))
-    ]
-    
-    st.markdown("### 📊 Market Report Summary")
-    metric_1, metric_2, metric_3, metric_4 = st.columns(4)
-    
-    with metric_1:
-        st.metric("Total Competitors Displayed", len(filtered_df))
-    with metric_2:
-        avg_market_rating = filtered_df['rating'].mean()
-        st.metric("Average Market Rating", f"⭐ {avg_market_rating:.2f}" if not np.isnan(avg_market_rating) else "N/A")
-    with metric_3:
-        avg_review_vol = filtered_df['total_reviews'].mean()
-        st.metric("Avg Review Volume / Venue", f"💬 {int(avg_review_vol)}" if not np.isnan(avg_review_vol) else "N/A")
-    with metric_4:
-        mode_price = filtered_df['price_level'].mode()
-        price_string = "€" * int(mode_price[0]) if not mode_price.empty else "N/A"
-        st.metric("Dominant Price Tier", price_string)
-        
-    st.markdown("### 🗺️ Live Market Density Heatmap")
-    m = folium.Map(location=[lat_input, lng_input], zoom_start=14, tiles="OpenStreetMap")
-    
-    # --- NEW: Draw a translucent circle guide if Fixed Radius search mode is active ---
-    if search_mode == "Fixed Radius Bound" and radius_meters:
-        folium.Circle(
-            location=[lat_input, lng_input],
-            radius=radius_meters,
-            color="#1E90FF",
-            fill=True,
-            fill_color="#1E90FF",
-            fill_opacity=0.1,
-            tooltip=f"Search Scope Limit ({radius_meters}m)"
-        ).add_to(m)
-        
-    heatmap_locs = filtered_df[['lat', 'lng']].values.tolist()
-    if heatmap_locs:
-        HeatMap(heatmap_locs, radius=25, blur=15).add_to(m)
-        
-    for idx, row in filtered_df.iterrows():
-        popup_content = f"""
-        <div style='font-family: sans-serif; font-size: 12px;'>
-            <strong>{row['name']}</strong><br>
-            Rating: ⭐ {row['rating']} ({int(row['total_reviews'])} reviews)<br>
-            Price Tier: {'€'*int(row['price_level'])}<br>
-            <a href="{row['website']}" target="_blank" style="color: #1E90FF;">Website Link</a>
-        </div>
-        """
-        folium.Marker(
-            location=[row['lat'], row['lng']],
-            popup=folium.Popup(popup_content, max_width=250),
-            icon=folium.Icon(color="red", icon="cutlery", prefix="fa")
-        ).add_to(m)
-        
-    st_folium(m, width="stretch", height=500, returned_objects=[])
-    
-    st.markdown("### 🗃️ Raw Competitor Matrix")
-    st.dataframe(
-        filtered_df[['name', 'rating', 'total_reviews', 'price_level', 'website']],
-        width="stretch",
-        column_config={"website": st.column_config.LinkColumn("Website View")}
+    st.markdown("### 🎯 Core Market Opportunity Summary")
+    st.metric(
+        label="Peak Opportunity Score", 
+        value=f"{top_opportunity['Opportunity_Score']} / 15", 
+        delta="High Market Gap"
     )
-else:
-    st.info("👈 Enter your target coordinates and preferences in the panel to map out local market insights.")
+    
+    st.markdown("---")
+    
+    # ROW 1 (TOP): Full-Width Strategic Opportunity Map
+    st.subheader("🗺️ Strategic Opportunity Map")
+    m = folium.Map(location=[st.session_state.last_lat, st.session_state.last_lng], zoom_start=15)
+    
+    # Center pinpoint anchor marker
+    folium.Marker(
+        [st.session_state.last_lat, st.session_state.last_lng],
+        popup="📍 <b>Your Proposed Site Core</b>",
+        tooltip="Search Epicenter",
+        icon=folium.Icon(color="red", icon="crosshair", prefix="fa")
+    ).add_to(m)
+    
+    for _, row in df.iterrows():
+        if row['lat'] and row['lng']:
+            # Updated color routing to match the new strategic distributions perfectly
+            if row['Market_Rank'] == 1:
+                marker_color, badge_color = "purple", "background-color: #7B1FA2; color: white;"
+            elif row['Market_Rank'] in [2, 3, 4]:
+                marker_color, badge_color = "blue", "background-color: #1976D2; color: white;"
+            elif row['Market_Rank'] in [5, 6, 7, 8]:
+                marker_color, badge_color = "green", "background-color: #388E3C; color: white;"
+            else:
+                marker_color, badge_color = "gray", "background-color: #616161; color: white;"
+            
+            popup_html = f"""
+            <div style="font-family: 'Arial', sans-serif; width: 230px; padding: 5px;">
+                <div style='float: right; font-size: 18px;'>#{row['Market_Rank']}</div>
+                <h4 style='margin: 0 0 4px 0; color: #333;'>{row['name']}</h4>
+                <div style='margin-bottom: 8px; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; display: inline-block; {badge_color}'>
+                    {row['Strategic_Recommendation']}
+                </div>
+                <table style='width: 100%; font-size: 12px;'>
+                    <tr><td>Current Rating:</td><td style='text-align: right; font-weight: bold;'>⭐ {row['rating']}</td></tr>
+                    <tr><td>Review Count:</td><td style='text-align: right; font-weight: bold;'>💬 {int(row['total_reviews'])}</td></tr>
+                    <tr><td style='color: #E64A19; font-weight: bold;'>Opportunity Index:</td><td style='text-align: right; font-weight: bold; color: #E64A19;'>{row['Opportunity_Score']}</td></tr>
+                </table>
+            </div>
+            """
+            folium.Marker(
+                [row['lat'], row['lng']],
+                popup=folium.Popup(popup_html, max_width=260),
+                tooltip=f"Rank #{row['Market_Rank']}: {row['name']}",
+                icon=folium.Icon(color=marker_color, icon="lightbulb-o", prefix="fa")
+            ).add_to(m)
+    
+    heat_data = [[row['lat'], row['lng'], row['Opportunity_Score']] for _, row in df.iterrows()]
+    HeatMap(heat_data, radius=30, blur=18, min_opacity=0.4).add_to(m)
+    
+    # Display map across the full dashboard container stretch width
+    st_folium(m, width=1400, height=500, key="dashboard_map")
+    
+    st.markdown("---")
+    
+    # ROW 2 (MIDDLE): Strategic Action Plan Legend Matrix
+    # FIXED: Changed allow_html=True to unsafe_allow_html=True for correct rendering
+    st.markdown("### 📋 Strategic Action Plan Legend")
+    leg_col1, leg_col2, leg_col3, leg_col4 = st.columns(4)
+    # ROW 2 (MIDDLE): Strategic Action Plan Legend Matrix
+
+    
+    with leg_col1:
+        st.markdown(
+            "<div style='padding: 12px; border-radius: 6px; border: 1px solid var(--text-color); border-left: 6px solid #7B1FA2; min-height: 110px;'>"
+            "<span style='font-size: 16px;'>🟣</span> <strong>Rank #1: Top Opportunity</strong><br>"
+            "<small style='opacity: 0.85;'>Peak volume of active market engagement combined with low satisfaction score performance.</small>"
+            "</div>", 
+            unsafe_allow_html=True
+        )
+    with leg_col2:
+        st.markdown(
+            "<div style='padding: 12px; border-radius: 6px; border: 1px solid var(--text-color); border-left: 6px solid #1976D2; min-height: 110px;'>"
+            "<span style='font-size: 16px;'>🔵</span> <strong>Ranks #2-4: Strong Entry</strong><br>"
+            "<small style='opacity: 0.85;'>High consumer traffic footprints exhibiting evident performance gaps or operational vulnerabilities.</small>"
+            "</div>", 
+            unsafe_allow_html=True
+        )
+    with leg_col3:
+        st.markdown(
+            "<div style='padding: 12px; border-radius: 6px; border: 1px solid var(--text-color); border-left: 6px solid #388E3C; min-height: 110px;'>"
+            "<span style='font-size: 16px;'>🟢</span> <strong>Ranks #5-8: Viable Gap</strong><br>"
+            "<small style='opacity: 0.85;'>Moderate traffic areas with review histories indicating clear room for strategic market entry.</small>"
+            "</div>", 
+            unsafe_allow_html=True
+        )
+    with leg_col4:
+        st.markdown(
+            "<div style='padding: 12px; border-radius: 6px; border: 1px solid var(--text-color); border-left: 6px solid #616161; min-height: 110px;'>"
+            "<span style='font-size: 16px;'>⚫</span> <strong>Ranks 9+: Low Priority</strong><br>"
+            "<small style='opacity: 0.85;'>Establishments with exceptionally high satisfaction records or very low customer interaction volumes.</small>"
+            "</div>", 
+            unsafe_allow_html=True
+        )
+          
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ROW 3 (BOTTOM): Full-Width Ranked Competitive Vulnerability Matrix
+    st.subheader("📊 Ranked Competitive Vulnerability Matrix")
+    st.dataframe(
+        df[['Market_Rank', 'name', 'Strategic_Recommendation', 'rating', 'total_reviews', 'Opportunity_Score', 'website']],
+        width="stretch",
+        height=400,
+        column_config={
+            "Market_Rank": st.column_config.NumberColumn("Rank", format="# %d"),
+            "name": st.column_config.TextColumn("Establishment Target"),
+            "Strategic_Recommendation": st.column_config.TextColumn("Strategic Action Plan"),
+            "rating": st.column_config.NumberColumn("Rating", format="⭐ %.1f"),
+            "total_reviews": st.column_config.NumberColumn("Reviews", format="%d 💬"),
+            "Opportunity_Score": st.column_config.ProgressColumn("Market Gap Intensity", min_value=0, max_value=15, format="%.1f"),
+            "website": st.column_config.LinkColumn("Competitor Site", display_text="Open 🔗")
+        },
+        hide_index=True
+    )

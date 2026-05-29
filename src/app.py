@@ -7,7 +7,7 @@ import pandas as pd
 # Import our custom logic modules securely using the unique namespace string
 import tracker
 import mapbite_analytics as analytics
-import matplotlib 
+
 
 # ==========================================
 # 1. UI INITIALIZATION & PLATFORM TOKENS

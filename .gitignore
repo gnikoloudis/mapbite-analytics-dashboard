@@ -1,7 +1,14 @@
+# Streamlit Local Configurations & Secrets
+src/.streamlit/config.toml
 src/.streamlit/secrets.toml
+
+# unwanted files
 src/api_usage_tracker.txt
-src/__pycache__/
+src/ignore_app_1.py
+src/ignore_app_2.py
+Lab.ipynb
+
+# unwanted directories
 temp/
 .venv/
-src/ignore_app.py
-Lab.ipynb
+src/__pycache__/

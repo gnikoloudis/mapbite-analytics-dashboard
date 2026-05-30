@@ -162,8 +162,7 @@ if address_resolved:
             logger.info(f"🚀 User requested analytics search around footprint epicenter: {st.session_state.last_lat}, {st.session_state.last_lng}")
             with st.spinner(t["btn_spinner"]):
                 df_results = analytics.fetch_and_rank_competitors(
-                    map_client, st.session_state.last_lat, st.session_state.last_lng, search_radius, selected_categories, search_keyword
-                )
+                        map_client, st.session_state.last_lat, st.session_state.last_lng, search_radius, selected_categories, search_keyword, t)
                 if not df_results.empty:
                     tracker.increment_counter_file(current_usage)
                     st.session_state.analysis_df = df_results

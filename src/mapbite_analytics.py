@@ -21,7 +21,7 @@ def resolve_address(map_client, address_string):
         logger.error(f"💥 Global Geocoding API Error: {e}", exc_info=True)
     return None, None
 
-def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories, keyword_filter):
+def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories, keyword_filter, t):
     if not selected_categories:
         return pd.DataFrame()
 
@@ -110,12 +110,12 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
     df = df.sort_values(by='Opportunity_Score', ascending=False).reset_index(drop=True)
     df['Market_Rank'] = df.index + 1
     
-# In app.py
     def assign_strategic_action(rank, t):
         if rank == 1: return t["strat_rank_1"]
         elif rank in [2, 3, 4]: return t["strat_rank_2"]
         elif rank in [5, 6, 7, 8]: return t["strat_rank_3"]
         return t["strat_rank_4"]
-        
-    df['Strategic_Recommendation'] = df['Market_Rank'].apply(assign_strategic_action)
+    
+    df['Strategic_Recommendation'] = df['Market_Rank'].apply(lambda x: assign_strategic_action(x, t))
+    
     return df

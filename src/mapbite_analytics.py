@@ -1,6 +1,10 @@
 import googlemaps
 import pandas as pd
 import numpy as np
+import logging
+
+# Set up module-level logging to output straight to the console stream
+logger = logging.getLogger("mapbite")
 
 def get_map_client(api_key):
     return googlemaps.Client(key=api_key)
@@ -14,7 +18,7 @@ def resolve_address(map_client, address_string):
             location_data = geocode_result[0]['geometry']['location']
             return location_data['lat'], location_data['lng']
     except Exception as e:
-        print(f"Global Geocoding Error: {e}")
+        logger.error(f"💥 Global Geocoding API Error: {e}", exc_info=True)
     return None, None
 
 def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories, keyword_filter):
@@ -35,21 +39,27 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
             if cleaned_keyword:
                 search_args["keyword"] = cleaned_keyword
 
+            logger.info(f"📡 Sending places_nearby request for category: '{category}', keyword: '{cleaned_keyword}'")
             places_result = map_client.places_nearby(**search_args)
             results = places_result.get('results', [])
+            logger.info(f"✅ Received {len(results)} raw items for category: '{category}'")
             
             for p in results:
                 p_id = p.get('place_id')
                 if p_id not in seen_place_ids:
                     seen_place_ids.add(p_id)
                     all_raw_results.append(p)
-        except Exception:
+        except Exception as e:
+            # Prints full Google Maps API error response strings directly into your terminal logs
+            logger.error(f"❌ Google Maps places_nearby API failure for category '{category}': {e}", exc_info=True)
             continue
 
     if not all_raw_results:
+        logger.warning("📭 Cumulative search across selected categories yielded 0 raw results.")
         return pd.DataFrame()
         
     processed_restaurants = []
+    logger.info(f"🔍 Hydrating place profiles for top {min(20, len(all_raw_results))} establishments...")
     
     for place in all_raw_results[:20]:
         p_id = place.get('place_id')
@@ -76,7 +86,8 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
                     'price_level': details.get('price_level', 2),
                     'website': details.get('website', '')
                 })
-        except Exception:
+        except Exception as e:
+            logger.error(f"❌ Google Maps place details lookup failure for place ID '{p_id}': {e}", exc_info=True)
             continue
 
     df = pd.DataFrame(processed_restaurants)

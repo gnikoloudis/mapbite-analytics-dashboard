@@ -96,7 +96,11 @@ LANG_DICT = {
 **3. Market Dominance Score (Market Leader Profile)**
 * **Formula:** `log(Total Reviews + 1) × Rating`
 * *Rationale:* Combines volume (popularity) with quality (rating). High scores indicate entrenched market leaders with a strong reputation and massive foot traffic.
-"""
+""",
+        "strat_rank_1": "🥇 Top Market Opportunity",
+        "strat_rank_2": "🥈 Strong Entry Zone",
+        "strat_rank_3": "🥉 Viable Market Gap",
+        "strat_rank_4": "🔹 Low Priority Target"
     },
     "el": {
         "title": "🍔 MapBite Dashboard Εμπορικής Ευφυΐας",
@@ -191,6 +195,10 @@ LANG_DICT = {
 **3. Δείκτης Κυριαρχίας Αγοράς (Προφίλ Ηγέτη)**
 * **Τύπος:** `log(Σύνολο Κριτικών + 1) × Βαθμολογία`
 * *Λογική:* Συνδυάζει τον όγκο (δημοτικότητα) με την ποιότητα (βαθμολογία). Οι υψηλές βαθμολογίες υποδεικνύουν εδραιωμένους ηγέτες της αγοράς με ισχυρή φήμη.
-"""
+""",
+        "strat_rank_1": "🥇 Κορυφαία Ευκαιρία Αγοράς",
+        "strat_rank_2": "🥈 Ζώνη Δυναμικής Εισόδου",
+        "strat_rank_3": "🥉 Βιώσιμο Κενό Αγοράς",
+        "strat_rank_4": "🔹 Χαμηλή Προτεραιότητα"
     }
 }

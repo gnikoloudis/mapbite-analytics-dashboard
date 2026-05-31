@@ -1,7 +1,10 @@
 import os
 from datetime import date
 
-COUNTER_FILE = "api_usage_tracker.txt"
+# Get the directory where tracker.py is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Construct the full path to the tracker file
+COUNTER_FILE = os.path.join(BASE_DIR, "api_usage_tracker.txt")
 
 def check_and_increment_tracker(daily_max_limit):
     """

@@ -39,6 +39,7 @@ else:
 
 # DYNAMIC CONFIG: Fetch Daily Cap Limit directly from Streamlit Secrets
 DAILY_MAX_LIMIT = st.secrets.get("DAILY_MAX_LIMIT", 5)
+ALL_RAW_RESULTS_LIMIT = st.secrets.get("ALL_RAW_RESULTS_LIMIT", 20)
 
 # Initialize dynamic session states with the NEW default coordinates
 if "analysis_df" not in st.session_state:
@@ -162,7 +163,7 @@ if address_resolved:
             logger.info(f"🚀 User requested analytics search around footprint epicenter: {st.session_state.last_lat}, {st.session_state.last_lng}")
             with st.spinner(t["btn_spinner"]):
                 df_results = analytics.fetch_and_rank_competitors(
-                        map_client, st.session_state.last_lat, st.session_state.last_lng, search_radius, selected_categories, search_keyword, t)
+                        map_client, st.session_state.last_lat, st.session_state.last_lng, search_radius, selected_categories, search_keyword, t, ALL_RAW_RESULTS_LIMIT)
                 if not df_results.empty:
                     tracker.increment_counter_file(current_usage)
                     st.session_state.analysis_df = df_results
@@ -349,8 +350,38 @@ if df is not None:
         },
         hide_index=True
     )
+    # Calculates the total Open, Permanently Closed, and Temporarily Closed counts based on the 'status' column in the dataframe and displays them as an info box below the table for a quick market status overview. This provides users
+    if df is not None and 'status' in df.columns:
 
+        perm_closed_count = df[df['status'] == t["status_perm_closed"]].shape[0]
+        temp_closed_count = df[df['status'] == t["status_temp_closed"]].shape[0]
+
+        total_open_count = df[df['status'] == t["status_open"]].shape[0]
+        total_closed_count = df[df['status'] == t["status_closed"]].shape[0]
+        
+        total_na_count = df[df['status'] == t["status_na"]].shape[0]
+
+        total_in_business = total_open_count + total_closed_count
+        total_out_of_business = perm_closed_count
+        
+
+        st.markdown("---")
+        # Create three columns for a dashboard effect
+        col1, col2, col3,col4 = st.columns(4)
+    
+        # Use st.metric for an "immersive" dashboard look
+        col1.metric(label=f"{t['in_business']}", value=total_in_business)
+        col2.metric(label=f"{t['status_temp_closed']}", value=temp_closed_count)        
+        col3.metric(label=f"{t['out_of_business']}", value=total_out_of_business)
+        col4.metric(label=f"{t['status_na']}", value=total_na_count)
+
+            
+        
+    #    st.info(f"ℹ️ **Market Status Summary:** {total_in_business} {t['in_business']},  {total_out_of_business} {t['out_of_business']} , {total_na_count} {t['status_na']}")
+    
     # ROW 4: Methodology / Transparency Section (NEW)
     st.markdown("---")
     st.subheader(t["method_title"])
     st.markdown(t["method_text"])
+    
+    st.markdown("---")

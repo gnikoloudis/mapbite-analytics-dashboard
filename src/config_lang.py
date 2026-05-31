@@ -97,10 +97,19 @@ LANG_DICT = {
 * **Formula:** `log(Total Reviews + 1) × Rating`
 * *Rationale:* Combines volume (popularity) with quality (rating). High scores indicate entrenched market leaders with a strong reputation and massive foot traffic.
 """,
-        "strat_rank_1": "🥇 Top Market Opportunity",
-        "strat_rank_2": "🥈 Strong Entry Zone",
-        "strat_rank_3": "🥉 Viable Market Gap",
-        "strat_rank_4": "🔹 Low Priority Target"
+    "strat_rank_1": "🥇 Top Market Opportunity",
+    "strat_rank_2": "🥈 Strong Entry Zone",
+    "strat_rank_3": "🥉 Viable Market Gap",
+    "strat_rank_4": "🔹 Low Priority Target",
+    "status_open": "🟢 Open",
+    "status_closed": "🔴 Closed",
+    "status_temp_closed": "⏳ Temp. Closed",
+    "status_perm_closed": "🚫 Perm. Closed",
+    "status_na": "⚪ N/A",
+    "comment_perm_closed": "establishments in this list are marked as Permanently Closed.",
+    "in_business": " ✅ In Business",
+    "out_of_business": " ⚠️ Out of Business",
+    "na_business": " ❌ N/A"
     },
     "el": {
         "title": "🍔 MapBite Dashboard Εμπορικής Ευφυΐας",
@@ -199,6 +208,15 @@ LANG_DICT = {
         "strat_rank_1": "🥇 Κορυφαία Ευκαιρία Αγοράς",
         "strat_rank_2": "🥈 Ζώνη Δυναμικής Εισόδου",
         "strat_rank_3": "🥉 Βιώσιμο Κενό Αγοράς",
-        "strat_rank_4": "🔹 Χαμηλή Προτεραιότητα"
+        "strat_rank_4": "🔹 Χαμηλή Προτεραιότητα",
+        "status_open": "🟢 Ανοιχτό",
+        "status_closed": "🔴 Κλειστό",
+        "status_temp_closed": "⏳ Κλειστό Προσωρινά",
+        "status_perm_closed": "🚫 Κλειστό Μόνιμα",
+        "status_na": "⚪ Απροσδιόριστο",
+        "comment_perm_closed": "επιχειρήσεις στη λίστα είναι μόνιμα κλειστές.",
+        "in_business": "✅ Λειτουργεί",
+        "out_of_business": "⚠️ Εκτός Λειτουργίας",
+        "na_business": "⚪ Απροσδιόριστο"
     }
 }

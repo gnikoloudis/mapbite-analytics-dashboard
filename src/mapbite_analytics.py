@@ -21,7 +21,7 @@ def resolve_address(map_client, address_string):
         logger.error(f"💥 Global Geocoding API Error: {e}", exc_info=True)
     return None, None
 
-def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories, keyword_filter, t):
+def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories, keyword_filter, t, ALL_RAW_RESULTS_LIMIT=20):
     if not selected_categories:
         return pd.DataFrame()
 
@@ -59,33 +59,42 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
         return pd.DataFrame()
         
     processed_restaurants = []
-    logger.info(f"🔍 Hydrating place profiles for top {min(20, len(all_raw_results))} establishments...")
+    logger.info(f"🔍 Hydrating place profiles for top {min(ALL_RAW_RESULTS_LIMIT, len(all_raw_results))} establishments...")
     
-    for place in all_raw_results[:20]:
+    for place in all_raw_results[:ALL_RAW_RESULTS_LIMIT]:
         p_id = place.get('place_id')
         try:
             details = map_client.place(
                 place_id=p_id,
                 fields=['name', 'rating', 'user_ratings_total', 'price_level', 'website', 'business_status', 'geometry', 'opening_hours']
             ).get('result', {})
+
+            # Bilingual status logic
+            b_status = details.get('business_status')
+            hours_info = details.get('opening_hours')
             
-            if details.get('business_status') == 'OPERATIONAL':
-                hours_info = details.get('opening_hours')
-                if hours_info is not None and 'open_now' in hours_info:
-                    status_text = "🟢 Open" if hours_info['open_now'] else "🔴 Closed"
+            if b_status == 'CLOSED_PERMANENTLY':
+                status_text = t["status_perm_closed"]
+            elif b_status == 'CLOSED_TEMPORARILY':
+                status_text = t["status_temp_closed"]
+            elif b_status == 'OPERATIONAL':
+                if hours_info and 'open_now' in hours_info:
+                    status_text = t["status_open"] if hours_info['open_now'] else t["status_closed"]
                 else:
-                    status_text = "⚪ N/A"
+                    status_text = t["status_na"]
+            else:
+                status_text = t["status_na"]
                 
-                processed_restaurants.append({
-                    'name': details.get('name', 'Unknown Establishment'),
-                    'status': status_text,
-                    'lat': details.get('geometry', {}).get('location', {}).get('lat'),
-                    'lng': details.get('geometry', {}).get('location', {}).get('lng'),
-                    'rating': details.get('rating', 0.0),
-                    'total_reviews': details.get('user_ratings_total', 0),
-                    'price_level': details.get('price_level', 2),
-                    'website': details.get('website', '')
-                })
+            processed_restaurants.append({
+                'name': details.get('name', 'Unknown Establishment'),
+                'status': status_text,
+                'lat': details.get('geometry', {}).get('location', {}).get('lat'),
+                'lng': details.get('geometry', {}).get('location', {}).get('lng'),
+                'rating': details.get('rating', 0.0),
+                'total_reviews': details.get('user_ratings_total', 0),
+                'price_level': details.get('price_level', 2),
+                'website': details.get('website', '')
+            })
         except Exception as e:
             logger.error(f"❌ Google Maps place details lookup failure for place ID '{p_id}': {e}", exc_info=True)
             continue

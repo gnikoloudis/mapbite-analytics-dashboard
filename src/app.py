@@ -179,10 +179,7 @@ st.sidebar.progress(
     text=f"{t['limit_lbl']} {current_usage} / {DAILY_MAX_LIMIT}"
 )
 
-# Sidebar metrics documentation panel
-st.sidebar.markdown("---")
-st.sidebar.markdown(t["metric_panel_lbl"])
-st.sidebar.markdown(t["metric_panel_text"])
+
 
 # ==========================================
 # 4. RESULTS VIEW DASHBOARD GENERATION
@@ -352,37 +349,52 @@ if df is not None:
         hide_index=True
     )
     # Calculates the total Open, Permanently Closed, and Temporarily Closed counts based on the 'status' column in the dataframe and displays them as an info box below the table for a quick market status overview. This provides users
-    if df is not None and 'status' in df.columns:
+    # with an immediate understanding of the competitive landscape in terms of operational status, helping them gauge market saturation and potential opportunities at a glance.
+    perm_closed_count = df[df['status'] == t["status_perm_closed"]].shape[0]
+    temp_closed_count = df[df['status'] == t["status_temp_closed"]].shape[0]
 
-        perm_closed_count = df[df['status'] == t["status_perm_closed"]].shape[0]
-        temp_closed_count = df[df['status'] == t["status_temp_closed"]].shape[0]
-
-        total_open_count = df[df['status'] == t["status_open"]].shape[0]
-        total_closed_count = df[df['status'] == t["status_closed"]].shape[0]
-        
-        total_na_count = df[df['status'] == t["status_na"]].shape[0]
-
-        total_in_business = total_open_count + total_closed_count
-        total_out_of_business = perm_closed_count
-        
-
-        st.markdown("---")
-        # Create three columns for a dashboard effect
-        col1, col2, col3,col4 = st.columns(4)
+    total_open_count = df[df['status'] == t["status_open"]].shape[0]
+    total_closed_count = df[df['status'] == t["status_closed"]].shape[0]
     
-        # Use st.metric for an "immersive" dashboard look
-        col1.metric(label=f"{t['in_business']}", value=total_in_business)
-        col2.metric(label=f"{t['status_temp_closed']}", value=temp_closed_count)        
-        col3.metric(label=f"{t['out_of_business']}", value=total_out_of_business)
-        col4.metric(label=f"{t['status_na']}", value=total_na_count)
+    total_na_count = df[df['status'] == t["status_na"]].shape[0]
+
+    total_in_business = total_open_count + total_closed_count
+    total_out_of_business = perm_closed_count
+    
+
+    st.markdown("---")
+    # Create three columns for a dashboard effect
+    col1, col2, col3,col4 = st.columns(4)
+
+    # Use st.metric for an "immersive" dashboard look
+    col1.metric(label=f"{t['in_business']}", value=total_in_business)
+    col2.metric(label=f"{t['status_temp_closed']}", value=temp_closed_count)        
+    col3.metric(label=f"{t['out_of_business']}", value=total_out_of_business)
+    col4.metric(label=f"{t['status_na']}", value=total_na_count)
 
             
         
-    #    st.info(f"ℹ️ **Market Status Summary:** {total_in_business} {t['in_business']},  {total_out_of_business} {t['out_of_business']} , {total_na_count} {t['status_na']}")
+    #ROW 4: User Guidance & Interpretation Section
+    st.markdown("---")
+    # Sidebar metrics documentation panel
+    st.markdown(t["metric_panel_lbl"])
+    st.markdown(t["metric_panel_text"])
     
-    # ROW 4: Methodology / Transparency Section (NEW)
+    # ROW 5: Methodology / Transparency Section (NEW)
     st.markdown("---")
     st.subheader(t["method_title"])
     st.markdown(t["method_text"])
     
+    #ROW 6: Strategic Profiles Explanation (NEW)
     st.markdown("---")
+    # Explanation panel in app.py
+
+    st.markdown(f"### {t['strat_profile_header']}")
+    st.write(t["strat_profile_text"])
+    st.markdown(f"""
+    * **{t['strat_rank_1']}**: {t['strat_1_desc']}
+    * **{t['strat_rank_2']}**: {t['strat_2_desc']}
+    * **{t['strat_rank_3']}**: {t['strat_3_desc']}
+    * **{t['strat_rank_4']}**: {t['strat_4_desc']}
+    """)
+        

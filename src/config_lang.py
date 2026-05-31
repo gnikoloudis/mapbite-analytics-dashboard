@@ -112,7 +112,21 @@ LANG_DICT = {
     "na_business": " ❌ N/A",
     "lens_choices_title": "Choose Dashboard Analysis Angle:",
     "find_market_gaps": "🔴 Find Market Gaps & Vulnerabilities (Worst Rated/Highest Traffic)",
-    "find_market_leaders": "👑 Find Market Leaders & Dominance (Best Rated/Highest Traffic)"
+    "find_market_leaders": "👑 Find Market Leaders & Dominance (Best Rated/Highest Traffic)",
+    # Add these inside your 'en' and 'el' dictionaries in config_lang.py
+    "expander_title": "ℹ️ Learn more about Strategic Profiles & Status",
+    "strat_profile_header": "🎯 Strategic Profile Definitions",
+    "strat_profile_text": "These profiles categorize competitors based on their market performance:",
+    "strat_1_desc": "Top-performing opportunities requiring immediate attention.",
+    "strat_2_desc": "High-potential zones for market entry.",
+    "strat_3_desc": "Viable gaps with moderate potential.",
+    "strat_4_desc": "Standard establishments with lower priority.",
+    "status_header": "⏰ Operational Status Meanings",
+    "status_open_desc": "The business is currently operating.",
+    "status_closed_desc": "The business is currently outside of operational hours.",
+    "status_temp_desc": "The business is temporarily unavailable.",
+    "status_perm_desc": "The business has ceased operations permanently.",
+    "status_na_desc": "No operational status data is available for this listing."
     },
     "el": {
         "title": "🍔 MapBite Dashboard Εμπορικής Ευφυΐας",
@@ -223,6 +237,20 @@ LANG_DICT = {
         "na_business": "⚪ Απροσδιόριστο",
         "lens_choices_title": "Επιλέξτε Είδος Ανάλυσης:",
         "find_market_gaps": "🔴 Εύρεση Κενών Αγοράς & Αδυναμιών (Χαμηλότερη Βαθμολογία/Υψηλή Κίνηση)",
-        "find_market_leaders": "👑 Εύρεση Ηγετών Αγοράς & Κυριαρχίας (Καλύτερη Βαθμολογία/Υψηλή Κίνηση)"
+        "find_market_leaders": "👑 Εύρεση Ηγετών Αγοράς & Κυριαρχίας (Καλύτερη Βαθμολογία/Υψηλή Κίνηση)",
+        "expander_title": "ℹ️ Μάθετε περισσότερα για τα Στρατηγικά Προφίλ & Καταστάσεις",
+        "strat_profile_header": "🎯 Ορισμοί Στρατηγικών Προφίλ",
+        "strat_profile_text": "Αυτά τα προφίλ κατηγοριοποιούν τους ανταγωνιστές με βάση την απόδοσή τους στην αγορά:",
+        "strat_1_desc": "Κορυφαίες ευκαιρίες που απαιτούν άμεση προσοχή.",
+        "strat_2_desc": "Ζώνες υψηλής δυναμικής για είσοδο στην αγορά.",
+        "strat_3_desc": "Βιώσιμα κενά με μέτρια δυναμική.",
+        "strat_4_desc": "Τυπικές επιχειρήσεις με χαμηλότερη προτεραιότητα.",
+        "status_header": "⏰ Σημασία Κατάστασης Λειτουργίας",
+        "status_open_desc": "Η επιχείρηση λειτουργεί αυτή τη στιγμή.",
+        "status_closed_desc": "Η επιχείρηση είναι κλειστή.",
+        "status_temp_closed_desc": "Η επιχείρηση είναι κλειστή προσωρινά.",
+        "status_perm_closed_desc": "Η επιχείρηση είναι κλειστή μόνιμα.",
+        "status_na_desc": "Η κατάσταση της επιχείρησης δεν είναι διαθέσιμη."
+
     }
 }

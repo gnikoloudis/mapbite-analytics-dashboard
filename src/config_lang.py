@@ -126,7 +126,16 @@ LANG_DICT = {
     "status_closed_desc": "The business is currently outside of operational hours.",
     "status_temp_desc": "The business is temporarily unavailable.",
     "status_perm_desc": "The business has ceased operations permanently.",
-    "status_na_desc": "No operational status data is available for this listing."
+    "status_na_desc": "No operational status data is available for this listing.",
+    "reviews_header": "💬 Customer Reviews Highlight",
+    "reviews_select_prompt": "💡 Select a restaurant row in the table above to view its top 3 best and worst recent reviews.",
+    "reviews_best_title": "🌟 Top 3 Recent Best Reviews (Rating 3-5)",
+    "reviews_worst_title": "⚠️ Top 3 Recent Worst Reviews (Rating 1-2)",
+    "reviews_no_best": "ℹ️ No recent positive reviews (3-5 stars) found.",
+    "reviews_no_worst": "ℹ️ No recent negative reviews (1-2 stars) found.",
+    "reviews_no_data": "📭 No reviews data available for this restaurant.",
+    "reviews_rating_lbl": "Rating",
+    "reviews_date_lbl": "Date"
     },
     "el": {
         "title": "🍔 MapBite Dashboard Εμπορικής Ευφυΐας",
@@ -250,7 +259,15 @@ LANG_DICT = {
         "status_closed_desc": "Η επιχείρηση είναι κλειστή.",
         "status_temp_closed_desc": "Η επιχείρηση είναι κλειστή προσωρινά.",
         "status_perm_closed_desc": "Η επιχείρηση είναι κλειστή μόνιμα.",
-        "status_na_desc": "Η κατάσταση της επιχείρησης δεν είναι διαθέσιμη."
-
+        "status_na_desc": "Η κατάσταση της επιχείρησης δεν είναι διαθέσιμη.",
+        "reviews_header": "💬 Στιγμιότυπο Κριτικών Πελατών",
+        "reviews_select_prompt": "💡 Επιλέξτε μια γραμμή εστιατορίου στον παραπάνω πίνακα για να δείτε τις 3 καλύτερες και 3 χειρότερες πρόσφατες κριτικές του.",
+        "reviews_best_title": "🌟 3 Πρόσφατες Καλύτερες Κριτικές (Βαθμολογία 3-5)",
+        "reviews_worst_title": "⚠️ 3 Πρόσφατες Χειρότερες Κριτικές (Βαθμολογία 1-2)",
+        "reviews_no_best": "ℹ️ Δεν βρέθηκαν πρόσφατες θετικές κριτικές (3-5 αστέρια).",
+        "reviews_no_worst": "ℹ️ Δεν βρέθηκαν πρόσφατες αρνητικές κριτικές (1-2 αστέρια).",
+        "reviews_no_data": "📭 Δεν υπάρχουν διαθέσιμες κριτικές για αυτό το εστιατόριο.",
+        "reviews_rating_lbl": "Βαθμολογία",
+        "reviews_date_lbl": "Ημερομηνία"
     }
 }

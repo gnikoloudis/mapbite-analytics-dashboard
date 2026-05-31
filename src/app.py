@@ -9,6 +9,7 @@ from folium.plugins import HeatMap
 import re
 import pandas as pd 
 import logging
+from datetime import datetime
 
 # ==========================================
 # 0. CONSOLE LOGGING ENGINE CONFIGURATION
@@ -329,7 +330,7 @@ if df is not None:
         'Quality_Gap_Display', 'Value_Deficit_Display', 'Dominance_Display', 'website'
     ]
     
-    st.dataframe(
+    selection_event = st.dataframe(
         df[display_columns],
         width="stretch",
         height=400,
@@ -346,8 +347,78 @@ if df is not None:
             "Dominance_Display": st.column_config.TextColumn(t["col_dom"]),
             "website": st.column_config.LinkColumn(t["col_site"], display_text=t["col_site_btn"])
         },
-        hide_index=True
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row"
     )
+
+    # Reviews Display Section under the table
+    st.markdown("---")
+    st.subheader(t["reviews_header"])
+    
+    selected_rows = selection_event.selection.rows
+    if selected_rows:
+        selected_idx = selected_rows[0]
+        selected_restaurant = df.iloc[selected_idx]
+        reviews = selected_restaurant.get('reviews', [])
+        
+        if not isinstance(reviews, list):
+            reviews = []
+            
+        if not reviews:
+            st.info(t["reviews_no_data"])
+        else:
+            # Sort reviews by time descending (most recent first)
+            sorted_reviews = sorted(reviews, key=lambda r: r.get('time', 0), reverse=True)
+            
+            best_reviews = [r for r in sorted_reviews if r.get('rating', 0) >= 3][:3]
+            worst_reviews = [r for r in sorted_reviews if r.get('rating', 0) <= 2][:3]
+            
+            col_best, col_worst = st.columns(2)
+            
+            with col_best:
+                st.markdown(f"#### {t['reviews_best_title']}")
+                if not best_reviews:
+                    st.caption(t["reviews_no_best"])
+                else:
+                    for r in best_reviews:
+                        rating = r.get('rating', 0)
+                        stars = "⭐" * int(rating) + "☆" * (5 - int(rating))
+                        text = r.get('text', '')
+                        author = r.get('author_name', 'Anonymous')
+                        time_sec = r.get('time', None)
+                        try:
+                            date_str = datetime.fromtimestamp(time_sec).strftime('%Y-%m-%d') if time_sec else "N/A"
+                        except Exception:
+                            date_str = "N/A"
+                        
+                        with st.container(border=True):
+                            st.markdown(f"**{author}**  |  {stars} ({rating}/5)")
+                            st.caption(f"{t['reviews_date_lbl']}: {date_str}")
+                            st.write(text)
+                            
+            with col_worst:
+                st.markdown(f"#### {t['reviews_worst_title']}")
+                if not worst_reviews:
+                    st.caption(t["reviews_no_worst"])
+                else:
+                    for r in worst_reviews:
+                        rating = r.get('rating', 0)
+                        stars = "⭐" * int(rating) + "☆" * (5 - int(rating))
+                        text = r.get('text', '')
+                        author = r.get('author_name', 'Anonymous')
+                        time_sec = r.get('time', None)
+                        try:
+                            date_str = datetime.fromtimestamp(time_sec).strftime('%Y-%m-%d') if time_sec else "N/A"
+                        except Exception:
+                            date_str = "N/A"
+                        
+                        with st.container(border=True):
+                            st.markdown(f"**{author}**  |  {stars} ({rating}/5)")
+                            st.caption(f"{t['reviews_date_lbl']}: {date_str}")
+                            st.write(text)
+    else:
+        st.info(t["reviews_select_prompt"])
     # Calculates the total Open, Permanently Closed, and Temporarily Closed counts based on the 'status' column in the dataframe and displays them as an info box below the table for a quick market status overview. This provides users
     # with an immediate understanding of the competitive landscape in terms of operational status, helping them gauge market saturation and potential opportunities at a glance.
     

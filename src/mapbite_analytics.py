@@ -65,7 +65,7 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
         try:
             details = map_client.place(
                 place_id=p_id,
-                fields=['name', 'rating', 'user_ratings_total', 'price_level', 'website', 'business_status', 'geometry', 'opening_hours']
+                fields=['name', 'rating', 'user_ratings_total', 'price_level', 'website', 'business_status', 'geometry', 'opening_hours', 'reviews']
             ).get('result', {})
 
             # Language-Agnostic Status Logic
@@ -93,7 +93,8 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
                 'rating': details.get('rating', 0.0),
                 'total_reviews': details.get('user_ratings_total', 0),
                 'price_level': details.get('price_level', 2),
-                'website': details.get('website', '')
+                'website': details.get('website', ''),
+                'reviews': details.get('reviews', [])
             })
         except Exception as e:
             logger.error(f"❌ Google Maps place details lookup failure for place ID '{p_id}': {e}", exc_info=True)

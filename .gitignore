@@ -3,10 +3,8 @@ src/.streamlit/config.toml
 src/.streamlit/secrets.toml
 
 # unwanted files
-src/api_usage_tracker.txt
-src/ignore_app_1.py
-src/ignore_app_2.py
-Lab.ipynb
+src/ignore_*.py
+*.ipynb
 
 # unwanted directories
 temp/

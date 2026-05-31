@@ -354,7 +354,7 @@ if df is not None:
 
     # Reviews Display Section under the table
     st.markdown("---")
-    st.subheader(t["reviews_header"])
+    st.subheader(t.get("reviews_header", "💬 Customer Reviews Highlight"))
     
     selected_rows = selection_event.selection.rows
     if selected_rows:
@@ -366,7 +366,7 @@ if df is not None:
             reviews = []
             
         if not reviews:
-            st.info(t["reviews_no_data"])
+            st.info(t.get("reviews_no_data", "📭 No reviews data available for this restaurant."))
         else:
             # Sort reviews by time descending (most recent first)
             sorted_reviews = sorted(reviews, key=lambda r: r.get('time', 0), reverse=True)
@@ -377,9 +377,9 @@ if df is not None:
             col_best, col_worst = st.columns(2)
             
             with col_best:
-                st.markdown(f"#### {t['reviews_best_title']}")
+                st.markdown(f"#### {t.get('reviews_best_title', '🌟 Top 3 Recent Best Reviews (Rating 3-5)')}")
                 if not best_reviews:
-                    st.caption(t["reviews_no_best"])
+                    st.caption(t.get("reviews_no_best", "ℹ️ No recent positive reviews (3-5 stars) found."))
                 else:
                     for r in best_reviews:
                         rating = r.get('rating', 0)
@@ -394,13 +394,13 @@ if df is not None:
                         
                         with st.container(border=True):
                             st.markdown(f"**{author}**  |  {stars} ({rating}/5)")
-                            st.caption(f"{t['reviews_date_lbl']}: {date_str}")
+                            st.caption(f"{t.get('reviews_date_lbl', 'Date')}: {date_str}")
                             st.write(text)
                             
             with col_worst:
-                st.markdown(f"#### {t['reviews_worst_title']}")
+                st.markdown(f"#### {t.get('reviews_worst_title', '⚠️ Top 3 Recent Worst Reviews (Rating 1-2)')}")
                 if not worst_reviews:
-                    st.caption(t["reviews_no_worst"])
+                    st.caption(t.get("reviews_no_worst", "ℹ️ No recent negative reviews (1-2 stars) found."))
                 else:
                     for r in worst_reviews:
                         rating = r.get('rating', 0)
@@ -415,10 +415,10 @@ if df is not None:
                         
                         with st.container(border=True):
                             st.markdown(f"**{author}**  |  {stars} ({rating}/5)")
-                            st.caption(f"{t['reviews_date_lbl']}: {date_str}")
+                            st.caption(f"{t.get('reviews_date_lbl', 'Date')}: {date_str}")
                             st.write(text)
     else:
-        st.info(t["reviews_select_prompt"])
+        st.info(t.get("reviews_select_prompt", "💡 Select a restaurant row in the table above to view its top 3 best and worst recent reviews."))
     # Calculates the total Open, Permanently Closed, and Temporarily Closed counts based on the 'status' column in the dataframe and displays them as an info box below the table for a quick market status overview. This provides users
     # with an immediate understanding of the competitive landscape in terms of operational status, helping them gauge market saturation and potential opportunities at a glance.
     

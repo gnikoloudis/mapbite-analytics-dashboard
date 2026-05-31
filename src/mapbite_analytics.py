@@ -50,7 +50,6 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
                     seen_place_ids.add(p_id)
                     all_raw_results.append(p)
         except Exception as e:
-            # Prints full Google Maps API error response strings directly into your terminal logs
             logger.error(f"❌ Google Maps places_nearby API failure for category '{category}': {e}", exc_info=True)
             continue
 
@@ -69,25 +68,26 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
                 fields=['name', 'rating', 'user_ratings_total', 'price_level', 'website', 'business_status', 'geometry', 'opening_hours']
             ).get('result', {})
 
-            # Bilingual status logic
+            # Language-Agnostic Status Logic
             b_status = details.get('business_status')
             hours_info = details.get('opening_hours')
             
+            # Store internal codes instead of translated strings
             if b_status == 'CLOSED_PERMANENTLY':
-                status_text = t["status_perm_closed"]
+                status_code = 'perm_closed'
             elif b_status == 'CLOSED_TEMPORARILY':
-                status_text = t["status_temp_closed"]
+                status_code = 'temp_closed'
             elif b_status == 'OPERATIONAL':
                 if hours_info and 'open_now' in hours_info:
-                    status_text = t["status_open"] if hours_info['open_now'] else t["status_closed"]
+                    status_code = 'open' if hours_info['open_now'] else 'closed'
                 else:
-                    status_text = t["status_na"]
+                    status_code = 'na'
             else:
-                status_text = t["status_na"]
+                status_code = 'na'
                 
             processed_restaurants.append({
                 'name': details.get('name', 'Unknown Establishment'),
-                'status': status_text,
+                'status': status_code, # Storing the code (e.g., 'open', 'perm_closed')
                 'lat': details.get('geometry', {}).get('location', {}).get('lat'),
                 'lng': details.get('geometry', {}).get('location', {}).get('lng'),
                 'rating': details.get('rating', 0.0),

@@ -350,18 +350,20 @@ if df is not None:
     )
     # Calculates the total Open, Permanently Closed, and Temporarily Closed counts based on the 'status' column in the dataframe and displays them as an info box below the table for a quick market status overview. This provides users
     # with an immediate understanding of the competitive landscape in terms of operational status, helping them gauge market saturation and potential opportunities at a glance.
-    perm_closed_count = df[df['status'] == t["status_perm_closed"]].shape[0]
-    temp_closed_count = df[df['status'] == t["status_temp_closed"]].shape[0]
-
-    total_open_count = df[df['status'] == t["status_open"]].shape[0]
-    total_closed_count = df[df['status'] == t["status_closed"]].shape[0]
     
-    total_na_count = df[df['status'] == t["status_na"]].shape[0]
+    perm_closed_count = df[df['status'] == 'perm_closed'].shape[0]
+    temp_closed_count = df[df['status'] == 'temp_closed'].shape[0]
+
+    
+    total_open_count = df[df['status'] == 'open'].shape[0]
+    total_closed_count = df[df['status'] == 'closed'].shape[0]
+    
+    total_na_count = df[df['status'] == 'na'].shape[0]
 
     total_in_business = total_open_count + total_closed_count
     total_out_of_business = perm_closed_count
     
-
+    #ROW 3: Market Status Metrics
     st.markdown("---")
     # Create three columns for a dashboard effect
     col1, col2, col3,col4 = st.columns(4)

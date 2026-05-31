@@ -191,9 +191,10 @@ raw_df = st.session_state.analysis_df
 
 st.markdown(t["lens_lbl"])
 view_mode = st.radio(
-    "Choose Dashboard Analysis Angle:",
+    t["lens_choices_title"],
     t["lens_choices"],
     horizontal=True,
+    index=0,
     label_visibility="collapsed"
 )
 st.markdown("---")
@@ -203,7 +204,7 @@ if raw_df is not None and not raw_df.empty:
     if 'status' not in raw_df.columns:
         raw_df['status'] = "⚪ N/A"
 
-    if "Find Market Gaps" in view_mode or "Εύρεση Κενών" in view_mode:
+    if t["find_market_gaps"] in view_mode:
         df = raw_df.sort_values(by="Opportunity_Score", ascending=False).reset_index(drop=True)
         df['Market_Rank'] = df.index + 1
         st.metric(label=t["peak_opp_lbl"], value=f"{df.iloc[0]['Opportunity_Score']} / 15", delta=t["peak_opp_delta"])
@@ -230,7 +231,7 @@ folium.Marker(
 if df is not None:
     for _, row in df.iterrows():
         if row['lat'] and row['lng']:
-            if "Find Market Gaps" in view_mode or "Εύρεση Κενών" in view_mode:
+            if t["find_market_gaps"] in view_mode:
                 if row['Market_Rank'] == 1: marker_color, badge_color = "purple", "background-color: #7B1FA2; color: white;"
                 elif row['Market_Rank'] in [2, 3, 4]: marker_color, badge_color = "blue", "background-color: #1976D2; color: white;"
                 elif row['Market_Rank'] in [5, 6, 7, 8]: marker_color, badge_color = "green", "background-color: #388E3C; color: white;"
@@ -269,7 +270,7 @@ if df is not None:
                 icon=folium.Icon(color=marker_color, icon=map_icon, prefix="fa")
             ).add_to(m)
             
-    weight_column = 'Opportunity_Score' if ("Find Market Gaps" in view_mode or "Εύρεση Κενών" in view_mode) else 'Market_Dominance_Score'
+    weight_column = 'Opportunity_Score' if (t["find_market_gaps"] in view_mode) else 'Market_Dominance_Score'
     heat_data = [[row['lat'], row['lng'], row[weight_column]] for _, row in df.iterrows()]
     HeatMap(heat_data, radius=30, blur=18, min_opacity=0.4).add_to(m)
 
@@ -281,7 +282,7 @@ if df is not None:
     st.markdown(t["legend_title"])
     leg_col1, leg_col2, leg_col3, leg_col4 = st.columns(4)
     
-    if "Find Market Gaps" in view_mode or "Εύρεση Κενών" in view_mode:
+    if t["find_market_gaps"] in view_mode:
         with leg_col1:
             st.markdown(f"<div style='padding:12px; border-radius:6px; border:1px solid var(--text-color); border-left:6px solid #7B1FA2; min-height:110px;'>{t['leg1_gap']}</div>", unsafe_allow_html=True)
         with leg_col2:

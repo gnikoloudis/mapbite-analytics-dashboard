@@ -109,7 +109,10 @@ LANG_DICT = {
     "comment_perm_closed": "establishments in this list are marked as Permanently Closed.",
     "in_business": " ✅ In Business",
     "out_of_business": " ⚠️ Out of Business",
-    "na_business": " ❌ N/A"
+    "na_business": " ❌ N/A",
+    "lens_choices_title": "Choose Dashboard Analysis Angle:",
+    "find_market_gaps": "🔴 Find Market Gaps & Vulnerabilities (Worst Rated/Highest Traffic)",
+    "find_market_leaders": "👑 Find Market Leaders & Dominance (Best Rated/Highest Traffic)"
     },
     "el": {
         "title": "🍔 MapBite Dashboard Εμπορικής Ευφυΐας",
@@ -217,6 +220,9 @@ LANG_DICT = {
         "comment_perm_closed": "επιχειρήσεις στη λίστα είναι μόνιμα κλειστές.",
         "in_business": "✅ Λειτουργεί",
         "out_of_business": "⚠️ Εκτός Λειτουργίας",
-        "na_business": "⚪ Απροσδιόριστο"
+        "na_business": "⚪ Απροσδιόριστο",
+        "lens_choices_title": "Επιλέξτε Είδος Ανάλυσης:",
+        "find_market_gaps": "🔴 Εύρεση Κενών Αγοράς & Αδυναμιών (Χαμηλότερη Βαθμολογία/Υψηλή Κίνηση)",
+        "find_market_leaders": "👑 Εύρεση Ηγετών Αγοράς & Κυριαρχίας (Καλύτερη Βαθμολογία/Υψηλή Κίνηση)"
     }
 }

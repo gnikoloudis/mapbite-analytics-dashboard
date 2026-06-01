@@ -30,6 +30,34 @@ st.set_page_config(
     layout="wide"
 )
 
+# Inject StaticPulse Real-time Analytics Tracker
+st.html("""
+<!-- StaticPulse Real-time Analytics Tracker -->
+<script>
+(function(){
+    if (window.__staticPulseTracked) return;
+    window.__staticPulseTracked = true;
+    var url = "https://staticpulse-three.vercel.app/p.gif";
+    var params = new URLSearchParams(window.location.search);
+    var query = "?id=bef17c12-39cd-411c-8f30-65155cc5cec3" + 
+                "&path=" + encodeURIComponent(window.location.pathname) + 
+                "&ref=" + encodeURIComponent(document.referrer || "") + 
+                "&lang=" + encodeURIComponent(navigator.language || "") + 
+                "&screen=" + encodeURIComponent(window.screen.width + "x" + window.screen.height) + 
+                "&utm_source=" + encodeURIComponent(params.get("utm_source") || "") + 
+                "&utm_medium=" + encodeURIComponent(params.get("utm_medium") || "") + 
+                "&utm_campaign=" + encodeURIComponent(params.get("utm_campaign") || "");
+    var img = new Image();
+    img.src = url + query;
+    img.style.position = "absolute";
+    img.style.width = "1px";
+    img.style.height = "1px";
+    img.style.opacity = "0";
+    document.body.appendChild(img);
+})();
+</script>
+""", unsafe_allow_javascript=True)
+
 # Handle API Key validation
 if "GOOGLE_API_KEY" in st.secrets:
     API_KEY = st.secrets["GOOGLE_API_KEY"]
@@ -180,12 +208,18 @@ st.sidebar.progress(
     text=f"{t['limit_lbl']} {current_usage} / {DAILY_MAX_LIMIT}"
 )
 
-
-
 # ==========================================
 # 4. RESULTS VIEW DASHBOARD GENERATION
 # ==========================================
 raw_df = st.session_state.analysis_df
+
+# Ensure status field is normalized to raw codes immediately if empty
+if raw_df is not None and not raw_df.empty:
+    if 'status' not in raw_df.columns:
+        raw_df['status'] = "na"
+    else:
+        # Fill missing values with 'na' code safely
+        raw_df['status'] = raw_df['status'].fillna('na')
 
 st.markdown(t["lens_lbl"])
 view_mode = st.radio(
@@ -199,9 +233,6 @@ st.markdown("---")
 
 df = None
 if raw_df is not None and not raw_df.empty:
-    if 'status' not in raw_df.columns:
-        raw_df['status'] = "⚪ N/A"
-
     if t["find_market_gaps"] in view_mode:
         df = raw_df.sort_values(by="Opportunity_Score", ascending=False).reset_index(drop=True)
         df['Market_Rank'] = df.index + 1
@@ -226,6 +257,15 @@ folium.Marker(
     icon=folium.Icon(color="red", icon="crosshair", prefix="fa")
 ).add_to(m)
 
+# Build localization mapping dictionary dynamically for visual presentation frames
+status_display_map = {
+    'open': t.get('status_open', '🟢 Open'),
+    'closed': t.get('status_closed', '🔴 Closed'),
+    'perm_closed': t.get('status_perm_closed', '❌ Permanently Closed'),
+    'temp_closed': t.get('status_temp_closed', '⚠️ Temporarily Closed'),
+    'na': t.get('status_na', '⚪ N/A')
+}
+
 if df is not None:
     for _, row in df.iterrows():
         if row['lat'] and row['lng']:
@@ -246,14 +286,16 @@ if df is not None:
                 badge_text = "Market Leader Profile" if lang_code == "en" else "Προφίλ Ηγέτη Αγοράς"
                 metric_label, metric_value, metric_color_style, map_icon = t["map_popup_dom_idx"], row['Market_Dominance_Score'], "color: #FF8F00;", "trophy"
             
-            row_status = row.get('status', '⚪ N/A')
+            # Map raw lower-case indicator strings dynamically to localized labels
+            raw_status_code = row.get('status', 'na')
+            localized_status = status_display_map.get(raw_status_code, status_display_map['na'])
 
             popup_html = f"""
             <div style="font-family: 'Arial', sans-serif; width: 230px; padding: 5px;">
                 <div style='float: right; font-size: 18px;'>#{row['Market_Rank']}</div>
                 <h4 style='margin: 0 0 4px 0; color: #333;'>{row['name']}</h4>
                 <div style='margin-bottom: 8px; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; display: inline-block; {badge_color}'>{badge_text}</div>
-                <br><small style='color: #666;'>{t['map_popup_status']}: {row_status}</small>
+                <br><small style='color: #666;'>{t['map_popup_status']}: {localized_status}</small>
                 <table style='width: 100%; font-size: 12px; margin-top: 5px;'>
                     <tr><td>{t['map_popup_rating']}</td><td style='text-align: right; font-weight: bold;'>⭐ {row['rating']}</td></tr>
                     <tr><td>{t['map_popup_reviews']}</td><td style='text-align: right; font-weight: bold;'>💬 {int(row['total_reviews'])}</td></tr>
@@ -303,41 +345,45 @@ if df is not None:
     # ROW 3 (BOTTOM): Full-Width Analytical Data Matrix Grid
     st.subheader(t["matrix_title"])
     
-    df['Price_Tier_Icons'] = df['price_level'].apply(
+    # Transform raw dataframe codes to display labels safely inside copy dataframe frame
+    df_display = df.copy()
+    df_display['status_display'] = df_display['status'].apply(lambda x: status_display_map.get(x, status_display_map['na']))
+
+    df_display['Price_Tier_Icons'] = df_display['price_level'].apply(
         lambda x: "💵" * int(max(1, min(4, x))) if pd.notnull(x) else "💵💵"
     )
     
-    max_opp = df['Opportunity_Score'].max() if not df.empty else 1
-    df['Opp_Icon'] = df['Opportunity_Score'].apply(
+    max_opp = df_display['Opportunity_Score'].max() if not df_display.empty else 1
+    df_display['Opp_Icon'] = df_display['Opportunity_Score'].apply(
         lambda x: "🔴" if x > (max_opp * 0.6) else ("🟠" if x > (max_opp * 0.3) else "🟢")
     )
-    max_prem = df['Premium_Gap_Score'].max() if not df.empty else 1
-    df['Prem_Icon'] = df['Premium_Gap_Score'].apply(
+    max_prem = df_display['Premium_Gap_Score'].max() if not df_display.empty else 1
+    df_display['Prem_Icon'] = df_display['Premium_Gap_Score'].apply(
         lambda x: "🔴" if x > (max_prem * 0.6) else ("🟠" if x > (max_prem * 0.3) else "🟢")
     )
-    max_dom = df['Market_Dominance_Score'].max() if not df.empty else 1
-    df['Dom_Icon'] = df['Market_Dominance_Score'].apply(
+    max_dom = df_display['Market_Dominance_Score'].max() if not df_display.empty else 1
+    df_display['Dom_Icon'] = df_display['Market_Dominance_Score'].apply(
         lambda x: "🟢" if x > (max_dom * 0.6) else ("🟠" if x > (max_dom * 0.3) else "🔴")
     )
     
-    df['Quality_Gap_Display'] = df.apply(lambda r: f"{r['Opp_Icon']} {r['Opportunity_Score']:.1f}", axis=1)
-    df['Value_Deficit_Display'] = df.apply(lambda r: f"{r['Prem_Icon']} {r['Premium_Gap_Score']:.1f}", axis=1)
-    df['Dominance_Display'] = df.apply(lambda r: f"{r['Dom_Icon']} {r['Market_Dominance_Score']:.1f}", axis=1)
+    df_display['Quality_Gap_Display'] = df_display.apply(lambda r: f"{r['Opp_Icon']} {r['Opportunity_Score']:.1f}", axis=1)
+    df_display['Value_Deficit_Display'] = df_display.apply(lambda r: f"{r['Prem_Icon']} {r['Premium_Gap_Score']:.1f}", axis=1)
+    df_display['Dominance_Display'] = df_display.apply(lambda r: f"{r['Dom_Icon']} {r['Market_Dominance_Score']:.1f}", axis=1)
     
     display_columns = [
-        'Market_Rank', 'name', 'status', 'Strategic_Recommendation', 
+        'Market_Rank', 'name', 'status_display', 'Strategic_Recommendation', 
         'rating', 'total_reviews', 'Price_Tier_Icons', 
         'Quality_Gap_Display', 'Value_Deficit_Display', 'Dominance_Display', 'website'
     ]
     
     selection_event = st.dataframe(
-        df[display_columns],
+        df_display[display_columns],
         width="stretch",
         height=400,
         column_config={
             "Market_Rank": st.column_config.NumberColumn(t["col_rank"], format="# %d"),
             "name": st.column_config.TextColumn(t["col_establishment"]),
-            "status": st.column_config.TextColumn(t["col_status"]),
+            "status_display": st.column_config.TextColumn(t["col_status"]),
             "Strategic_Recommendation": st.column_config.TextColumn(t["col_profile"]),
             "rating": st.column_config.NumberColumn(t["col_rating"], format="%.1f"),
             "total_reviews": st.column_config.NumberColumn(t["col_reviews"], format="%d"),
@@ -419,16 +465,12 @@ if df is not None:
                             st.write(text)
     else:
         st.info(t.get("reviews_select_prompt", "💡 Select a restaurant row in the table above to view its top 3 best and worst recent reviews."))
-    # Calculates the total Open, Permanently Closed, and Temporarily Closed counts based on the 'status' column in the dataframe and displays them as an info box below the table for a quick market status overview. This provides users
-    # with an immediate understanding of the competitive landscape in terms of operational status, helping them gauge market saturation and potential opportunities at a glance.
     
+    # Calculate counts using the internal codes safely[cite: 1, 2]
     perm_closed_count = df[df['status'] == 'perm_closed'].shape[0]
     temp_closed_count = df[df['status'] == 'temp_closed'].shape[0]
-
-    
     total_open_count = df[df['status'] == 'open'].shape[0]
     total_closed_count = df[df['status'] == 'closed'].shape[0]
-    
     total_na_count = df[df['status'] == 'na'].shape[0]
 
     total_in_business = total_open_count + total_closed_count
@@ -436,32 +478,25 @@ if df is not None:
     
     #ROW 3: Market Status Metrics
     st.markdown("---")
-    # Create three columns for a dashboard effect
-    col1, col2, col3,col4 = st.columns(4)
+    col1, col2, col3, col4 = st.columns(4)
 
-    # Use st.metric for an "immersive" dashboard look
     col1.metric(label=f"{t['in_business']}", value=total_in_business)
     col2.metric(label=f"{t['status_temp_closed']}", value=temp_closed_count)        
     col3.metric(label=f"{t['out_of_business']}", value=total_out_of_business)
     col4.metric(label=f"{t['status_na']}", value=total_na_count)
 
-            
-        
     #ROW 4: User Guidance & Interpretation Section
     st.markdown("---")
-    # Sidebar metrics documentation panel
     st.markdown(t["metric_panel_lbl"])
     st.markdown(t["metric_panel_text"])
     
-    # ROW 5: Methodology / Transparency Section (NEW)
+    # ROW 5: Methodology / Transparency Section
     st.markdown("---")
     st.subheader(t["method_title"])
     st.markdown(t["method_text"])
     
-    #ROW 6: Strategic Profiles Explanation (NEW)
+    #ROW 6: Strategic Profiles Explanation
     st.markdown("---")
-    # Explanation panel in app.py
-
     st.markdown(f"### {t['strat_profile_header']}")
     st.write(t["strat_profile_text"])
     st.markdown(f"""
@@ -470,4 +505,3 @@ if df is not None:
     * **{t['strat_rank_3']}**: {t['strat_3_desc']}
     * **{t['strat_rank_4']}**: {t['strat_4_desc']}
     """)
-        

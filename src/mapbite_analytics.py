@@ -72,7 +72,7 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
             b_status = details.get('business_status')
             hours_info = details.get('opening_hours')
             
-            # Store internal codes instead of translated strings
+            # Store explicit structural lowercase internal codes[cite: 2]
             if b_status == 'CLOSED_PERMANENTLY':
                 status_code = 'perm_closed'
             elif b_status == 'CLOSED_TEMPORARILY':
@@ -87,7 +87,7 @@ def fetch_and_rank_competitors(map_client, lat, lng, radius, selected_categories
                 
             processed_restaurants.append({
                 'name': details.get('name', 'Unknown Establishment'),
-                'status': status_code, # Storing the code (e.g., 'open', 'perm_closed')
+                'status': status_code, 
                 'lat': details.get('geometry', {}).get('location', {}).get('lat'),
                 'lng': details.get('geometry', {}).get('location', {}).get('lng'),
                 'rating': details.get('rating', 0.0),
